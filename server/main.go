@@ -2,6 +2,7 @@ package demo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
@@ -57,4 +58,30 @@ func (s *UsersServer) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*
 		Emails: list[offset:end],
 	}
 	return &response, nil
+}
+
+func (s *UsersServer) GetUser(ctx context.Context, in *pb.GetUserRequest) (*pb.GetUserResponse, error) {
+	var response pb.GetUserResponse
+	var err error
+	user, ok := s.users.Load(in.Email)
+	if ok {
+		response.User = user.(*pb.User)
+	} else {
+		response.Error = "user not found"
+		err = errors.New("user not found")
+	}
+	return &response, err
+}
+
+func (s *UsersServer) DelUser(ctx context.Context, in *pb.DelUserRequest) (*pb.DelUserResponse, error) {
+	var response pb.DelUserResponse
+	var err error
+
+	_, ok := s.users.LoadAndDelete(in.Email)
+	if !ok {
+		response.Error = "user not found"
+		err = errors.New("user not found")
+	}
+
+	return &response, err
 }
