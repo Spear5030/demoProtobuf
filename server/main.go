@@ -1,9 +1,11 @@
-package demo
+package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"google.golang.org/grpc"
+	"log"
+	"net"
 	"sort"
 	"sync"
 
@@ -60,28 +62,48 @@ func (s *UsersServer) ListUsers(ctx context.Context, in *pb.ListUsersRequest) (*
 	return &response, nil
 }
 
+// GetUser реализует интерфейс получения пользователя.
 func (s *UsersServer) GetUser(ctx context.Context, in *pb.GetUserRequest) (*pb.GetUserResponse, error) {
 	var response pb.GetUserResponse
-	var err error
+	//var err error
 	user, ok := s.users.Load(in.Email)
 	if ok {
 		response.User = user.(*pb.User)
 	} else {
-		response.Error = "user not found"
-		err = errors.New("user not found")
+		response.Error = "user not found " + in.Email
+		//	err = errors.New("user not found")
 	}
-	return &response, err
+	return &response, nil
 }
 
+// DelUser реализует интерфейс удаления пользователя.
 func (s *UsersServer) DelUser(ctx context.Context, in *pb.DelUserRequest) (*pb.DelUserResponse, error) {
 	var response pb.DelUserResponse
-	var err error
+	//var err error
 
 	_, ok := s.users.LoadAndDelete(in.Email)
 	if !ok {
-		response.Error = "user not found"
-		err = errors.New("user not found")
+		response.Error = "user not found " + in.Email
+		//	err = errors.New("user not found")
 	}
 
-	return &response, err
+	return &response, nil
+}
+
+func main() {
+	// определяем порт для сервера
+	listen, err := net.Listen("tcp", ":3200")
+	if err != nil {
+		log.Fatal(err)
+	}
+	// создаём gRPC-сервер без зарегистрированной службы
+	s := grpc.NewServer()
+	// регистрируем сервис
+	pb.RegisterUsersServer(s, &UsersServer{})
+
+	fmt.Println("Сервер gRPC начал работу")
+	// получаем запрос gRPC
+	if err := s.Serve(listen); err != nil {
+		log.Fatal(err)
+	}
 }
