@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"net"
 	"sort"
@@ -70,8 +72,7 @@ func (s *UsersServer) GetUser(ctx context.Context, in *pb.GetUserRequest) (*pb.G
 	if ok {
 		response.User = user.(*pb.User)
 	} else {
-		response.Error = "user not found " + in.Email
-		//	err = errors.New("user not found")
+		return nil, status.Errorf(codes.NotFound, `Пользователь с email %s не найден`, in.Email)
 	}
 	return &response, nil
 }
